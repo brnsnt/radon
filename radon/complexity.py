@@ -70,83 +70,93 @@ def sorted_results(blocks, order=SCORE):
         * `SCORE`: sorty by score (descending).
 
     Default is `SCORE`.
-    '''
+    """
     return sorted(blocks, key=order)
 
 
 def add_inner_blocks(blocks):
-    '''Process a list of blocks by adding all closures and inner classes as
+    """Process a list of blocks by adding all closures and inner classes as
     top-level blocks.
-    '''
+    """
     new_blocks = []
     all_blocks = blocks[:]
     while all_blocks:
         block = all_blocks.pop()
         new_blocks.append(block)
-        for inner_block in ('closures', 'inner_classes'):
+        for inner_block in ("closures", "inner_classes"):
             for i_block in getattr(block, inner_block, ()):
-                named = i_block._replace(name=block.name + '.' + i_block.name)
+                named = i_block._replace(name=block.name + "." + i_block.name)
                 all_blocks.append(named)
-                for meth in getattr(named, 'methods', ()):
+                for meth in getattr(named, "methods", ()):
                     m_named = meth._replace(classname=named.name)
                     all_blocks.append(m_named)
     return new_blocks
 
 
 def cc_visit(code, **kwargs):
-    '''Visit the given code with :class:`~radon.visitors.ComplexityVisitor`.
+    """Visit the given code with :class:`~radon.visitors.ComplexityVisitor`.
     All the keyword arguments are directly passed to the visitor.
-    '''
+    """
     return cc_visit_ast(code2ast(code), **kwargs)
 
 
 def cc_visit_ast(ast_node, **kwargs):
-    '''Visit the AST node with :class:`~radon.visitors.ComplexityVisitor`. All
+    """Visit the AST node with :class:`~radon.visitors.ComplexityVisitor`. All
     the keyword arguments are directly passed to the visitor.
-    '''
-    return ComplexityVisitor.from_ast(ast_node, **kwargs).blocks
+    """
+    visitor_cls = kwargs.pop("visitor_cls", ComplexityVisitor)
+    return visitor_cls.from_ast(ast_node, **kwargs).blocks
 
 
 class Flake8Checker(object):
-    '''Entry point for the Flake8 tool.'''
+    """Entry point for the Flake8 tool."""
 
-    name = 'radon'
-    version = __import__('radon').__version__
-    _code = 'R701'
-    _error_tmpl = 'R701 %r is too complex (%d)'
+    name = "radon"
+    version = __import__("radon").__version__
+    _code = "R701"
+    _error_tmpl = "R701 %r is too complex (%d)"
     no_assert = False
     show_closures = False
     max_cc = -1
 
     def __init__(self, tree, filename):
-        '''Accept the AST tree and a filename (unused).'''
+        """Accept the AST tree and a filename (unused)."""
         self.tree = tree
 
     @classmethod
     def add_options(cls, parser):  # pragma: no cover
-        '''Add custom options to the global parser.'''
+        """Add custom options to the global parser."""
         options.register(
             parser,
-            '--radon-max-cc', default=-1, action='store',
-            type='int', help='Radon complexity threshold',
-            parse_from_config=True
-        )
-        options.register(
-            parser,
-            '--radon-no-assert', dest='no_assert', action='store_true',
-            default=False, help='Radon will ignore assert statements',
+            "--radon-max-cc",
+            default=-1,
+            action="store",
+            type="int",
+            help="Radon complexity threshold",
             parse_from_config=True,
         )
         options.register(
             parser,
-            '--radon-show-closures', dest='show_closures', action='store_true',
-            default=False, help='Add closures/inner classes to the output',
+            "--radon-no-assert",
+            dest="no_assert",
+            action="store_true",
+            default=False,
+            help="Radon will ignore assert statements",
+            parse_from_config=True,
+        )
+        options.register(
+            parser,
+            "--radon-show-closures",
+            dest="show_closures",
+            action="store_true",
+            default=False,
+            help="Add closures/inner classes to the output",
             parse_from_config=True,
         )
 
     @classmethod
     def parse_options(cls, options):  # pragma: no cover
-        '''Save actual options as class attributes.'''
+        """Save actual options as class attributes."""
         cls.max_cc = options.radon_max_cc
         cls.no_assert = options.no_assert
         cls.show_closures = options.show_closures

@@ -6,12 +6,19 @@ import sys
 import collections
 from radon.raw import analyze
 from radon.metrics import h_visit, mi_visit, mi_rank
-from radon.complexity import (cc_visit, sorted_results, cc_rank,
-                              add_inner_blocks)
+from radon.complexity import cc_visit, sorted_results, cc_rank, add_inner_blocks
+from radon.visitors import CognitiveComplexityVisitor
 from radon.cli.colors import RANKS_COLORS, MI_RANKS, RESET
-from radon.cli.tools import (iter_filenames, _open, cc_to_dict, dict_to_xml,
-                             dict_to_codeclimate_issues, cc_to_terminal,
-                             raw_to_dict, strip_ipython)
+from radon.cli.tools import (
+    iter_filenames,
+    _open,
+    cc_to_dict,
+    dict_to_xml,
+    dict_to_codeclimate_issues,
+    cc_to_terminal,
+    raw_to_dict,
+    strip_ipython,
+)
 
 if sys.version_info[0] < 3:
     from StringIO import StringIO
@@ -360,9 +367,89 @@ def hal_report_to_terminal(report, base_indent=0):
     yield "N2: {}".format(report.N2), (), {"indent": 1 + base_indent}
     yield "vocabulary: {}".format(report.vocabulary), (), {"indent": 1 + base_indent}
     yield "length: {}".format(report.length), (), {"indent": 1 + base_indent}
-    yield "calculated_length: {}".format(report.calculated_length), (), {"indent": 1 + base_indent}
+    yield "calculated_length: {}".format(report.calculated_length), (), {
+        "indent": 1 + base_indent
+    }
     yield "volume: {}".format(report.volume), (), {"indent": 1 + base_indent}
     yield "difficulty: {}".format(report.difficulty), (), {"indent": 1 + base_indent}
     yield "effort: {}".format(report.effort), (), {"indent": 1 + base_indent}
     yield "time: {}".format(report.time), (), {"indent": 1 + base_indent}
     yield "bugs: {}".format(report.bugs), (), {"indent": 1 + base_indent}
+
+
+class CGCHarvester(CCHarvester):
+    """A class that analyzes Python modules' Cognitive Complexity."""
+
+    def gobble(self, fobj):
+        """Analyze the content of the file object."""
+        r = cc_visit(
+            fobj.read(),
+            no_assert=self.config.no_assert,
+            visitor_cls=CognitiveComplexityVisitor,
+        )
+        if self.config.show_closures:
+            r = add_inner_blocks(r)
+        return sorted_results(r, order=self.config.order)
+
+    def _to_dicts(self):
+        """Format the results as a dictionary of dictionaries."""
+        result = {}
+        for key, data in self.results:
+
+            if "error" in data:
+                result[key] = data
+                continue
+            values = [v for v in map(cc_to_dict, data)]
+            # if self.config.min <= v["rank"] <= self.config.max
+            if values:
+                result[key] = values
+        return result
+
+    def as_json(self):
+        """Format the results as JSON."""
+        return json.dumps(self._to_dicts())
+
+    def as_xml(self):
+        """Format the results as XML. This is meant to be compatible with
+        Jenkin's CCM plugin. Therefore not all the fields are kept.
+        """
+        return dict_to_xml(self._to_dicts())
+
+    def as_codeclimate_issues(self):
+        """Format the result as Code Climate issues."""
+        return dict_to_codeclimate_issues(self._to_dicts(), self.config.min)
+
+    def to_terminal(self):
+        """Yield lines to be printed in a terminal."""
+        average_cc = 0.0
+        analyzed = 0
+        for name, blocks in self.results:
+            if "error" in blocks:
+                yield name, (blocks["error"],), {"error": True}
+                continue
+            res, cc, n = cc_to_terminal(
+                blocks,
+                self.config.show_complexity,
+                self.config.min,
+                self.config.max,
+                self.config.total_average,
+            )
+            average_cc += cc
+            analyzed += n
+            if res:
+                yield name, (), {}
+                yield res, (), {"indent": 1}
+
+        if (self.config.average or self.config.total_average) and analyzed:
+            cc = average_cc / analyzed
+            ranked_cc = cc_rank(cc)
+            yield (
+                "\n{0} blocks (classes, functions, methods) analyzed.",
+                (analyzed,),
+                {},
+            )
+            yield (
+                "Average complexity: {0}{1} ({2}){3}",
+                (RANKS_COLORS[ranked_cc], ranked_cc, cc, RESET),
+                {},
+            )
