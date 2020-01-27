@@ -9,16 +9,23 @@ import os
 
 import radon.complexity as cc_mod
 from radon.cli.colors import BRIGHT, RED, RESET
-from radon.cli.harvest import CCHarvester, RawHarvester, MIHarvester, HCHarvester
+from radon.cli.harvest import (
+    CCHarvester,
+    RawHarvester,
+    MIHarvester,
+    HCHarvester,
+    CGCHarvester,
+)
 
 
-CONFIG_SECTION_NAME = 'radon'
+CONFIG_SECTION_NAME = "radon"
 
 
 class FileConfig(object):
-    '''
+    """
     Yield default options by reading local configuration files.
-    '''
+    """
+
     def __init__(self):
         self.file_cfg = self.file_config()
 

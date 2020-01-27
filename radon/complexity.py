@@ -1,10 +1,15 @@
-'''This module contains all high-level helpers function that allow to work with
+"""This module contains all high-level helpers function that allow to work with
 Cyclomatic Complexity
-'''
+"""
 
 import math
 from flake8_polyfill import options
-from radon.visitors import GET_COMPLEXITY, ComplexityVisitor, code2ast
+from radon.visitors import (
+    GET_COMPLEXITY,
+    ComplexityVisitor,
+    code2ast,
+    CognitiveComplexityVisitor,
+)
 
 
 # sorted_block ordering functions
