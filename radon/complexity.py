@@ -75,7 +75,7 @@ def sorted_results(blocks, order=SCORE):
         * `SCORE`: sorty by score (descending).
 
     Default is `SCORE`.
-    """
+    '''
     return sorted(blocks, key=order)
 
 
