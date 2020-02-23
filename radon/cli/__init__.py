@@ -215,7 +215,7 @@ def raw(
     include_ipynb=_cfg.get_value("include_ipynb", bool, False),
     ipynb_cells=_cfg.get_value("ipynb_cells", bool, False),
 ):
-    """Analyze the given Python modules and compute raw metrics.
+    '''Analyze the given Python modules and compute raw metrics.
 
     :param paths: The paths where to find modules or packages to analyze. More
         than one path is allowed.
