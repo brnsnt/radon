@@ -332,7 +332,7 @@ class HalsteadVisitor(CodeVisitor):
             * the number of operands
             * the operators seen (a sequence)
             * the operands seen (a sequence)
-        """
+        '''
 
         def aux(self, node):
             """Actual function that updates the stats."""
